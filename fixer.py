@@ -18,8 +18,6 @@ def fix_msg(m):
 
     if len(m['text']) > 0:
         m['text'] = 'FIXED URLS: ' + fix_str(m['text'])
-    else:
-        m['text'] = 'asdf'
 
     for a in m['attachments']:
         del a['id']
