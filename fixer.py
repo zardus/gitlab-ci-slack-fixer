@@ -7,29 +7,49 @@ import json
 from slackclient import SlackClient
 
 def fix_str(s):
-    return s.replace('/projects/', '/gitlab_ci/projects/')
+    return s.replace('/projects/', '/gitlab_ci/projects/').replace('/gitlab/gitlab/', '/gitlab/')
 
 def fix_msg(m):
-    if 'username' not in m or m['username'] != 'GitLab CI':
+    if 'username' not in m or m['username'] not in ('GitLab CI', 'Gitlab Notifications'):
         return None
 
     if 'attachments' not in m:
         return None
 
+    did_fix = False
+
     if len(m['text']) > 0:
-        m['text'] = 'FIXED URLS: ' + fix_str(m['text'])
+        fixed = fix_str(m['text'])
+        if fixed != m['text']:
+            did_fix = True
+            m['text'] = 'FIXED URLS: ' + fixed
 
     for a in m['attachments']:
         del a['id']
-        a['fallback'] = 'FIXED URLS: ' + fix_str(a['fallback'])
-        a['text'] = 'FIXED URLS: ' + fix_str(a['text'])
+
+        fixed = fix_str(a['fallback'])
+        if fixed != a['fallback']:
+            did_fix = True
+            a['fallback'] = 'FIXED URLS: ' + fixed
+
+        fixed = fix_str(a['text'])
+        if fixed != a['text']:
+            did_fix = True
+            a['text'] = 'FIXED URLS: ' + fixed
+
 
         if 'fields' in a:
             for f in a['fields']:
-                f['value'] = fix_str(f['value'])
+                fixed = fix_str(f['value'])
+                if fixed != f['value']:
+                    did_fix = True
+                    f['value'] = 'FIXED URLS: ' + fixed
+
+    if not did_fix:
+        return None
 
     m['attachments'] = json.dumps(m['attachments'])
-    m['username'] = 'GitLab CI Fixer'
+    m['username'] += ' Fixer'
     return m
 
 def loop(sc):
